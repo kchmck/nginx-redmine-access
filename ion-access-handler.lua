@@ -107,7 +107,7 @@ function IONAccessHandler:decide()
 
     -- Forbid if the username and password don't match.
     if not user:check_pass(password) then
-        return self:forbid("incorrect username/password")
+        return self:forbid("incorrect password")
     end
 
     -- Get the member or non-member permissions for the current user on the
