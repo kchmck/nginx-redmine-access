@@ -110,7 +110,7 @@ function Redmine:fetch(sql, ...)
         return nil, err
     end
 
-    if query:rowcount() ~= 1 then
+    if query:rowcount() > 1 then
         return nil, "more than one row"
     end
 
