@@ -18,7 +18,7 @@ local Project = {}
 
 function Project:new(info, err)
     if not info then
-        return nil, err
+        return nil, err or "invalid project"
     end
 
     return setmetatable(info, {__index = self})
@@ -40,7 +40,7 @@ local User = {}
 
 function User:new(row, err)
     if not row then
-        return nil, err
+        return nil, err or "invalid user"
     end
 
     return setmetatable(row, {__index = self})
