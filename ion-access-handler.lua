@@ -47,8 +47,8 @@ function IONAccessHandler:decide()
         return self:forbid("project not readable")
     end
 
-    -- If the method is writable but the project isn't, then it can't be
-    -- operated on in with any user.
+    -- If the method requires write access, but the project is read-only, then
+    -- it can't be operated on in with any user.
     if not read_only and not project:writable() then
         return self:forbid("project not writable")
     end
@@ -70,7 +70,7 @@ function IONAccessHandler:decide()
             return self:authenticate()
         end
 
-        -- Force authentication for writable methods.
+        -- Force authentication for methods requiring write access.
         if not read_only then
             return self:authenticate()
         end
