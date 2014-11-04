@@ -33,8 +33,8 @@ function AccessHandler.parse_auth(header)
     return match[1], match[2]
 end
 
-function AccessHandler.read_only(method)
-    return AccessHandler.READ_ONLY[method] and true or false
+function AccessHandler:read_only(method)
+    return self.READ_ONLY[method] and true or false
 end
 
 function AccessHandler:allow()
