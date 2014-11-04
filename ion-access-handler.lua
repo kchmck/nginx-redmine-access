@@ -27,7 +27,7 @@ function IONAccessHandler:decide()
     -- Parse the project name from the url.
     local pname, err = self.parse_project(ngx.var.uri)
     if not pname then
-        return self:forbid("invalid project")
+        return self:forbid("malformed project")
     end
 
     -- Get the redmine object.
