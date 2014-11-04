@@ -1,11 +1,9 @@
-local redmine = require("redmine")
 local access = require("access-handler")
-
 local IONAccessHandler = access.AccessHandler:new()
 
-function IONAccessHandler:new(db)
+function IONAccessHandler:new(rm)
     return setmetatable({
-        db = db,
+        rm = rm,
     }, {__index = self})
 end
 
@@ -30,13 +28,11 @@ function IONAccessHandler:decide()
         return self:forbid("malformed project")
     end
 
-    -- Get the redmine object.
-    local rm = redmine.Redmine:new(self.db)
     -- Get whether the request is read-only.
     local read_only = self:read_only(ngx.req.get_method())
 
     -- Get the project object.
-    local project, err = rm:project(pname)
+    local project, err = self.rm:project(pname)
     if not project then
         return self:forbid(err)
     end
@@ -60,7 +56,7 @@ function IONAccessHandler:decide()
     -- as an anonymous user.
     if not header then
         -- Get the settings object.
-        local settings, err = rm:settings()
+        local settings, err = self.rm:settings()
         if not settings then
             return self:forbid(err)
         end
@@ -76,7 +72,7 @@ function IONAccessHandler:decide()
         end
 
         -- Get permissions for Anon.
-        local anon = rm:anon_perms(pname)
+        local anon = self.rm:anon_perms(pname)
         if not anon then
             return self:forbid(err)
         end
@@ -100,7 +96,7 @@ function IONAccessHandler:decide()
     end
 
     -- Get the user object.
-    local user, err = rm:user(username)
+    local user, err = self.rm:user(username)
     if not user then
         return self:forbid(err)
     end
@@ -112,7 +108,7 @@ function IONAccessHandler:decide()
 
     -- Get the member or non-member permissions for the current user on the
     -- current project.
-    local perms = self:user_perms(rm, pname, username)
+    local perms = self:user_perms(pname, username)
 
     -- Ensure read/write permissions match with method.
     if read_only then
@@ -124,9 +120,9 @@ function IONAccessHandler:decide()
     end
 end
 
-function IONAccessHandler:user_perms(rm, pname, username)
+function IONAccessHandler:user_perms(pname, username)
     -- Get the permissions for the current user.
-    local perms, err = rm:member_perms(pname, username)
+    local perms, err = self.rm:member_perms(pname, username)
     if not perms then
         return self:forbid(err)
     end
@@ -138,7 +134,7 @@ function IONAccessHandler:user_perms(rm, pname, username)
     end
 
     -- Otherwise, handle the non-member case.
-    local perms, err = rm:non_member_perms(pname, username)
+    local perms, err = self.rm:non_member_perms(pname, username)
     if not perms then
         return self:forbid(err)
     end
