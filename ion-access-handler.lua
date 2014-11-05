@@ -25,7 +25,7 @@ function IONAccessHandler:decide()
     -- Parse the project name from the url.
     local pname, err = self.parse_project(ngx.var.uri)
     if not pname then
-        return self:forbid("malformed project")
+        return self:forbid(err or "malformed project")
     end
 
     -- Get whether the request is read-only.
