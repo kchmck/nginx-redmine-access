@@ -111,7 +111,10 @@ function IONAccessHandler:decide()
 
     -- Get the member or non-member permissions for the current user on the
     -- current project.
-    local perms = self:user_perms(pname, username)
+    local perms, err = self:user_perms(pname, username)
+    if not perms then
+        return self:forbid(err)
+    end
 
     -- Ensure read/write permissions match with method.
     if read_only then
@@ -124,12 +127,12 @@ function IONAccessHandler:decide()
 end
 
 -- Get either the member or non-member permissions for the given user on the
--- given project as a Perms object.
+-- given project. Return a Perms object on success and nil, err on failure.
 function IONAccessHandler:user_perms(pname, username)
     -- Get the permissions for the current user.
     local perms, err = self.rm:member_perms(pname, username)
     if not perms then
-        return self:forbid(err)
+        return nil, err
     end
 
     -- If the user is actually a member of the current project, then the
@@ -141,12 +144,12 @@ function IONAccessHandler:user_perms(pname, username)
     -- Otherwise, handle the non-member case.
     local perms, err = self.rm:non_member_perms(pname, username)
     if not perms then
-        return self:forbid(err)
+        return nil, err
     end
 
     -- Forbid if the member has no non-member permissions on the project.
     if not perms:exists() then
-        self:forbid("no non-member permissions for user")
+        return nil, "no permissions for user"
     end
 
     return perms
