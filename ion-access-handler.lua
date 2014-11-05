@@ -12,7 +12,7 @@ function IONAccessHandler:realm()
 end
 
 function IONAccessHandler.parse_project(path)
-    local match, err = ngx.re.match(path, "/hg/([^/]+)")
+    local match, err = ngx.re.match(path, "^/hg/([^/]+)")
 
     if not match then
         return nil, err
