@@ -2,6 +2,8 @@ local crypto = require("crypto")
 
 local Settings = {}
 
+-- Construct a new settings object given a row from the database. The only
+-- setting actually handled is "login_required".
 function Settings:new(row, err)
     if not row then
         return nil, err
@@ -10,12 +12,14 @@ function Settings:new(row, err)
     return setmetatable(row, {__index = self})
 end
 
+-- Check if authentication is globally forced.
 function Settings:auth_forced()
     return self.value == "1"
 end
 
 local Project = {}
 
+-- Construct a new project given a row from the database.
 function Project:new(info, err)
     if not info then
         return nil, err or "invalid project"
@@ -24,6 +28,7 @@ function Project:new(info, err)
     return setmetatable(info, {__index = self})
 end
 
+-- Check whether the project's repo can be read.
 function Project:readable()
     -- Project status 9 corresponds to "archived", defined in
     -- app/models/project.rb. The project is readable as long as it isn't
@@ -31,6 +36,7 @@ function Project:readable()
     return self.status ~= 9
 end
 
+-- Check whether the project's repo can be written to.
 function Project:writable()
     -- Project status 1 corresponds to "active".
     return self.status == 1
@@ -38,6 +44,7 @@ end
 
 local User = {}
 
+-- Construct a new user object given a row from the database.
 function User:new(row, err)
     if not row then
         return nil, err or "invalid user"
@@ -46,14 +53,18 @@ function User:new(row, err)
     return setmetatable(row, {__index = self})
 end
 
+-- Create an ASCII hash of the given password using redmine's salt and hashing
+-- method.
 function User:hash_pass(pass)
     return crypto.digest("sha1", self.salt .. crypto.digest("sha1", pass))
 end
 
+-- Check whether the given password matches that stored in the database.
 function User:check_pass(pass)
     return self.hashed_password == self:hash_pass(pass)
 end
 
+-- Check if the user is active (not unregistered or locked).
 function User:active()
     -- User status 1 means "active", defined in app/models/principal.rb.
     return self.status == 1
@@ -61,6 +72,7 @@ end
 
 local Perms = {}
 
+-- Construct a new permissions object given a row from the database.
 function Perms:new(info, err)
     if not info then
         return nil, err
@@ -69,24 +81,30 @@ function Perms:new(info, err)
     return setmetatable(info, {__index = self})
 end
 
+-- Check if any permissions exist.
 function Perms:exists()
     return self.perms ~= nil
 end
 
+-- Check if permissions allow read access.
 function Perms:read_access()
     return self.perms:find(":browse_repository") ~= nil
 end
 
+-- Check if permissions allow write access.
 function Perms:write_access()
     return self.perms:find(":commit_access") ~= nil
 end
 
 local Redmine = {}
 
+-- Construct a new redmine object given a database connection to work from.
 function Redmine:new(db)
     return setmetatable({db = db}, {__index = self})
 end
 
+-- Execute the given sql query bound with given variadic arguments. Return a
+-- query object on success and nil, err on failure.
 function Redmine:exec(sql, ...)
     local query, err = self.db:prepare(sql)
 
@@ -103,6 +121,9 @@ function Redmine:exec(sql, ...)
     return query
 end
 
+-- Execute the given query with exec() and return the first row. More than one
+-- row is considered an error, so the query should ensure results are combined
+-- to a single row. Return the row table on success and nil, err on failure.
 function Redmine:fetch(sql, ...)
     local query, err = self:exec(sql, unpack(arg))
 
@@ -114,9 +135,11 @@ function Redmine:fetch(sql, ...)
         return nil, "more than one row"
     end
 
+    -- Fetch the row using column names as table indices.
     return query:fetch(true)
 end
 
+-- Get the settings object for this redmine setup.
 function Redmine:settings()
     return Settings:new(self:fetch([[
         SELECT value
@@ -126,6 +149,7 @@ function Redmine:settings()
     ]]))
 end
 
+-- Get a project object for the given project name.
 function Redmine:project(project)
     return Project:new(self:fetch([[
         SELECT is_public, status
@@ -135,8 +159,9 @@ function Redmine:project(project)
     ]], project))
 end
 
+-- Get a user object for the given username.
 function Redmine:user(user)
-    -- User status 1 is "active", defined in app/models/principal.rb
+    -- User status 1 is "active", defined in app/models/principal.rb.
     return User:new(self:fetch([[
         SELECT hashed_password, salt, status
         FROM users
@@ -145,47 +170,60 @@ function Redmine:user(user)
     ]], user, project))
 end
 
+-- Get the permissions object for Anon on the given project.
 function Redmine:anon_perms(project)
-    -- Builtin role 2 is "anonymous", defined in app/models/role.rb
     return Perms:new(self:fetch([[
+        -- Take the union of all the permissions of Anon.
         SELECT string_agg(permissions, '') AS perms
         FROM roles
-        WHERE builtin = 2 OR
-              id IN (
-                SELECT member_roles.role_id
-                FROM members, member_roles, projects, users
-                WHERE projects.identifier = ? AND
-                      members.user_id = users.id AND
-                      members.project_id = projects.id AND
-                      members.id = member_roles.member_id AND
-                      users.type = 'GroupAnonymous'
+        WHERE
+            -- Get global Anon role. This constant is defined in
+            -- app/models/role.rb.
+            builtin = 2 OR
+            -- Get project-specific Anon role.
+            id IN (
+              SELECT member_roles.role_id
+              FROM members, member_roles, projects, users
+              WHERE projects.identifier = ? AND
+                    members.user_id = users.id AND
+                    members.project_id = projects.id AND
+                    members.id = member_roles.member_id AND
+                    users.type = 'GroupAnonymous'
             )
         ;
     ]], project))
 end
 
+-- Get the non-member permissions object for the given user on the given
+-- project.
 function Redmine:non_member_perms(project, user)
-    -- Builtin role 1 is "non-member" defined in role.rb.
     return Perms:new(self:fetch([[
+        -- Take the union of all the permissions of the user.
         SELECT string_agg(permissions, '') AS perms
         FROM roles
-        WHERE builtin = 1 OR
-              id IN (
-                  SELECT member_roles.role_id
-                  FROM members, member_roles, projects, users
-                  WHERE projects.identifier = ? AND
-                        users.login = ? AND
-                        members.user_id = users.id AND
-                        members.project_id = projects.id AND
-                        members.id = member_roles.member_id AND
-                        users.type = 'GroupNonMember'
-              )
+        WHERE
+            -- Get global non-member role. This constant is defined in
+            -- app/models/role.rb.
+            builtin = 1 OR
+            -- Get project-specific non-member role.
+            id IN (
+                SELECT member_roles.role_id
+                FROM members, member_roles, projects, users
+                WHERE projects.identifier = ? AND
+                      users.login = ? AND
+                      members.user_id = users.id AND
+                      members.project_id = projects.id AND
+                      members.id = member_roles.member_id AND
+                      users.type = 'GroupNonMember'
+            )
         ;
     ]], project, user))
 end
 
+-- Get the member permissions object for the given user on the given project.
 function Redmine:member_perms(project, user)
     return Perms:new(self:fetch([[
+        -- Take the union of all the permissions of the user.
         SELECT string_agg(permissions, '') AS perms
         FROM roles
         WHERE id IN (

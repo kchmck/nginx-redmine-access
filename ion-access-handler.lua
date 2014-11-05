@@ -11,6 +11,8 @@ function IONAccessHandler:realm()
     return [["ION"]]
 end
 
+-- Try to parse a project name from a request URI of the form /hg/PROJECT[/...].
+-- Return the project name on success and nil, err on failure.
 function IONAccessHandler.parse_project(path)
     local match, err = ngx.re.match(path, "^/hg/([^/]+)")
 
@@ -21,6 +23,7 @@ function IONAccessHandler.parse_project(path)
     return match[1]
 end
 
+-- Most of this logic is from redmine's Redmine.pm script.
 function IONAccessHandler:decide()
     -- Parse the project name from the url.
     local pname, err = self.parse_project(ngx.var.uri)
@@ -120,6 +123,8 @@ function IONAccessHandler:decide()
     end
 end
 
+-- Get either the member or non-member permissions for the given user on the
+-- given project as a Perms object.
 function IONAccessHandler:user_perms(pname, username)
     -- Get the permissions for the current user.
     local perms, err = self.rm:member_perms(pname, username)
