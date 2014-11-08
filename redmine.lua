@@ -2,19 +2,22 @@ local crypto = require("crypto")
 
 local Settings = {}
 
--- Construct a new settings object given a row from the database. The only
--- setting actually handled is "login_required".
-function Settings:new(row, err)
-    if not row then
+-- Construct a new settings object given some rows of settings from the
+-- database. Return a Settings object on success and nil, err on failure. If a
+-- setting is defined, the Settigns object can be indexed with its name to
+-- return its value as a string.
+function Settings:new(query, err)
+    if not query then
         return nil, err
     end
 
-    return setmetatable(row, {__index = self})
-end
+    local s = setmetatable({}, {__index = self})
 
--- Check if authentication is globally forced.
-function Settings:auth_forced()
-    return self.value == "1"
+    for row in query:rows(true) do
+        s[row.name] = row.value
+    end
+
+    return s
 end
 
 local Project = {}
@@ -141,10 +144,10 @@ end
 
 -- Get the settings object for this redmine setup.
 function Redmine:settings()
-    return Settings:new(self:fetch([[
-        SELECT value
+    return Settings:new(self:exec([[
+        SELECT name, value
         FROM settings
-        WHERE settings.name = 'login_required'
+        WHERE name = 'login_required'
         ;
     ]]))
 end

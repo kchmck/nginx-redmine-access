@@ -68,7 +68,7 @@ function IONAccessHandler:decide()
         end
 
         -- If authentication is globally forced, then force it.
-        if settings:auth_forced() then
+        if settings.login_required == "1" then
             return self:authenticate()
         end
 
