@@ -2,9 +2,9 @@ local access = require("access-handler")
 local IONAccessHandler = access.AccessHandler:new()
 
 function IONAccessHandler:new(rm)
-    return setmetatable({
+    return setmetatable(access.AccessHandler:new({
         rm = rm,
-    }, {__index = self})
+    }), {__index = self})
 end
 
 function IONAccessHandler:realm()
