@@ -1,6 +1,9 @@
 local access = require("access-handler")
+
+-- Create a subclass of the main access handler.
 local IONAccessHandler = access.AccessHandler:new()
 
+-- Construct a new access handler given a redmine object.
 function IONAccessHandler:new(rm)
     return setmetatable(access.AccessHandler:new({
         rm = rm,

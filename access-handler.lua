@@ -7,6 +7,7 @@ local AccessHandler = {
     },
 }
 
+-- Construct a new AccessHandler subclass with the given object.
 function AccessHandler:new(obj)
     return setmetatable(obj or {}, {__index = self})
 end
