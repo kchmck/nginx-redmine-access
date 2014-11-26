@@ -1,5 +1,5 @@
 local redmine = require("redmine")
-local access = require("access-handler")
+local access = require("access")
 
 -- Create a subclass of the main access handler.
 local IONAccessHandler = access.AccessHandler:new()
