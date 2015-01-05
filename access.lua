@@ -9,10 +9,14 @@ local AccessHandler = {
     },
 }
 
--- Construct a new AccessHandler subclass with the given object.
-function AccessHandler:new(db)
+-- Construct a new AccessHandler with the given database handle and auth realm.
+function AccessHandler:new(db, realm)
+    assert(db, "no database handle")
+    assert(realm, "no auth realm")
+
     return setmetatable({
         rm = redmine.Redmine:new(db),
+        realm = realm,
     }, {__index = self})
 end
 
@@ -72,7 +76,7 @@ end
 
 -- Force the user to authenticate and provide credentials.
 function AccessHandler:authenticate()
-    ngx.header.www_authenticate = "Basic realm=" .. self:realm()
+    ngx.header.www_authenticate = "Basic realm=" .. self.realm
     return ngx.exit(ngx.HTTP_UNAUTHORIZED)
 end
 
@@ -211,12 +215,6 @@ function AccessHandler:user_perms(pname, username)
     end
 
     return perms
-end
-
--- Child class should implement to return a valid authentication "realm" as a
--- string.
-function AccessHandler:realm()
-    error("unimplemented")
 end
 
 return {
