@@ -21,7 +21,7 @@ For example,
         local db, err = dbi.Connect("DRIVER", "DATABASE", "USERNAME", 'PASSWORD")
         assert(db, err)
 
-        handler = access.AccessHandler:new(db, [["REALM"]])
+        handler = access.AccessHandler:new(db, "REALM")
     ';
 
     location /hg {

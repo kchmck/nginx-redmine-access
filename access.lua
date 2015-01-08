@@ -16,7 +16,7 @@ function AccessHandler:new(db, realm)
 
     return setmetatable({
         rm = redmine.Redmine:new(db),
-        realm = realm,
+        realm = "\"" .. realm .. "\"",
     }, {__index = self})
 end
 
