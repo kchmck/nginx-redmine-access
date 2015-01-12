@@ -86,17 +86,17 @@ end
 
 -- Check if any permissions exist.
 function Perms:exists()
-    return self.perms ~= nil
+    return self.permissions ~= nil
 end
 
 -- Check if permissions allow read access.
 function Perms:read_access()
-    return self.perms:find(":browse_repository") ~= nil
+    return self.permissions:find(":browse_repository") ~= nil
 end
 
 -- Check if permissions allow write access.
 function Perms:write_access()
-    return self.perms:find(":commit_access") ~= nil
+    return self.permissions:find(":commit_access") ~= nil
 end
 
 local Redmine = {}
@@ -175,7 +175,7 @@ end
 
 function Redmine:global_anon_perms()
     return Perms:new(self:fetch([[
-        SELECT permissions AS perms
+        SELECT permissions
         FROM roles
         -- This constant is defined in app/models/role.rb.
         WHERE builtin = 2
@@ -187,7 +187,7 @@ end
 function Redmine:anon_perms(project)
     return Perms:new(self:fetch([[
         -- Take the union of all the permissions of Anon.
-        SELECT string_agg(permissions, '') AS perms
+        SELECT string_agg(permissions, '') AS permissions
         FROM roles
         WHERE id IN (
           SELECT member_roles.role_id
@@ -204,7 +204,7 @@ end
 
 function Redmine:global_non_member_perms()
     return Perms:new(self:fetch([[
-        SELECT permissions as perms
+        SELECT permissions
         FROM roles
         -- This constant is defined in app/models/role.rb.
         WHERE builtin = 1
@@ -217,7 +217,7 @@ end
 function Redmine:non_member_perms(project)
     return Perms:new(self:fetch([[
         -- Take the union of all the permissions of the user.
-        SELECT string_agg(permissions, '') AS perms
+        SELECT string_agg(permissions, '') AS permissions
         FROM roles
         WHERE id IN (
             SELECT member_roles.role_id
@@ -236,7 +236,7 @@ end
 function Redmine:member_perms(project, user)
     return Perms:new(self:fetch([[
         -- Take the union of all the permissions of the user.
-        SELECT string_agg(permissions, '') AS perms
+        SELECT string_agg(permissions, '') AS permissions
         FROM roles
         WHERE id IN (
                   SELECT member_roles.role_id
