@@ -137,7 +137,7 @@ function AccessHandler:decide()
         end
 
         -- Get permissions for Anon.
-        local anon = self.rm:anon_perms(pname)
+        local anon, err = self.rm:anon_perms(pname)
         if not anon then
             return self:forbid(err)
         end
