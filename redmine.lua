@@ -173,6 +173,7 @@ function Redmine:user(user)
     ]], user, project))
 end
 
+-- Get the global permissions for Anon.
 function Redmine:global_anon_perms()
     return Perms:new(self:fetch([[
         SELECT permissions
@@ -183,7 +184,8 @@ function Redmine:global_anon_perms()
     ]]))
 end
 
--- Get the permissions object for Anon on the given project.
+-- Get the permissions for Anon on the given project. If these exist, they
+-- override the global permissions for Anon.
 function Redmine:anon_perms(project)
     return Perms:new(self:fetch([[
         -- Take the union of all the permissions of Anon.
@@ -202,6 +204,7 @@ function Redmine:anon_perms(project)
     ]], project))
 end
 
+-- Get the global permissions for non-member users.
 function Redmine:global_non_member_perms()
     return Perms:new(self:fetch([[
         SELECT permissions
@@ -212,8 +215,8 @@ function Redmine:global_non_member_perms()
     ]]))
 end
 
--- Get the non-member permissions object for the given user on the given
--- project.
+-- Get the non-member permissions for the given project. If these exist, they
+-- override the global non-member permissions.
 function Redmine:non_member_perms(project)
     return Perms:new(self:fetch([[
         -- Take the union of all the permissions of the user.
@@ -232,7 +235,8 @@ function Redmine:non_member_perms(project)
     ]], project))
 end
 
--- Get the member permissions object for the given user on the given project.
+-- Get the permissions for the given user on the given project. If the user
+-- isn't a member of the project, the permissions will be empty.
 function Redmine:member_perms(project, user)
     return Perms:new(self:fetch([[
         -- Take the union of all the permissions of the user.
