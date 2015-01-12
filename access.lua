@@ -136,15 +136,14 @@ function AccessHandler:decide()
             return self:authenticate()
         end
 
-        -- Get permissions for Anon.
-        local anon, err = self.rm:anon_perms(pname)
+        local anon, err = self:anon_perms(pname)
         if not anon then
             return self:forbid(err)
         end
 
         -- Since the method is read-only at this point, allow without
         -- authentication if the project is public and Anon has read access.
-        if project.is_public and anon:exists() and anon:read_access() then
+        if project.is_public and anon:read_access() then
             return self:allow()
         end
 
@@ -186,6 +185,32 @@ function AccessHandler:decide()
         return perms:write_access() and self:allow() or
             self:forbid("no write access")
     end
+end
+
+-- Get the project-specific or global permissions for Anon on the given project.
+-- Return a Perms object on success and nil, err on failure.
+function AccessHandler:anon_perms(pname)
+    -- Try to get project-specific Anon permissions.
+    local anon, err = self.rm:anon_perms(pname)
+    if not anon then
+        return nil, err
+    end
+
+    if anon:exists() then
+        return anon
+    end
+
+    -- Otherwise, try to get the global permissions and use those.
+    local global, err = self.rm:global_anon_perms()
+    if not global then
+        return nil, err
+    end
+
+    if not global:exists() then
+        return nil, "no permissions for anon"
+    end
+
+    return global
 end
 
 -- Get either the member or non-member permissions for the given user on the

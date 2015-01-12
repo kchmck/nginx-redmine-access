@@ -173,26 +173,31 @@ function Redmine:user(user)
     ]], user, project))
 end
 
+function Redmine:global_anon_perms()
+    return Perms:new(self:fetch([[
+        SELECT permissions AS perms
+        FROM roles
+        -- This constant is defined in app/models/role.rb.
+        WHERE builtin = 2
+        ;
+    ]]))
+end
+
 -- Get the permissions object for Anon on the given project.
 function Redmine:anon_perms(project)
     return Perms:new(self:fetch([[
         -- Take the union of all the permissions of Anon.
         SELECT string_agg(permissions, '') AS perms
         FROM roles
-        WHERE
-            -- Get global Anon role. This constant is defined in
-            -- app/models/role.rb.
-            builtin = 2 OR
-            -- Get project-specific Anon role.
-            id IN (
-              SELECT member_roles.role_id
-              FROM members, member_roles, projects, users
-              WHERE projects.identifier = ? AND
-                    members.user_id = users.id AND
-                    members.project_id = projects.id AND
-                    members.id = member_roles.member_id AND
-                    users.type = 'GroupAnonymous'
-            )
+        WHERE id IN (
+          SELECT member_roles.role_id
+          FROM members, member_roles, projects, users
+          WHERE projects.identifier = ? AND
+                members.user_id = users.id AND
+                members.project_id = projects.id AND
+                members.id = member_roles.member_id AND
+                users.type = 'GroupAnonymous'
+        )
         ;
     ]], project))
 end
