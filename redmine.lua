@@ -202,30 +202,34 @@ function Redmine:anon_perms(project)
     ]], project))
 end
 
+function Redmine:global_non_member_perms()
+    return Perms:new(self:fetch([[
+        SELECT permissions as perms
+        FROM roles
+        -- This constant is defined in app/models/role.rb.
+        WHERE builtin = 1
+        ;
+    ]]))
+end
+
 -- Get the non-member permissions object for the given user on the given
 -- project.
-function Redmine:non_member_perms(project, user)
+function Redmine:non_member_perms(project)
     return Perms:new(self:fetch([[
         -- Take the union of all the permissions of the user.
         SELECT string_agg(permissions, '') AS perms
         FROM roles
-        WHERE
-            -- Get global non-member role. This constant is defined in
-            -- app/models/role.rb.
-            builtin = 1 OR
-            -- Get project-specific non-member role.
-            id IN (
-                SELECT member_roles.role_id
-                FROM members, member_roles, projects, users
-                WHERE projects.identifier = ? AND
-                      users.login = ? AND
-                      members.user_id = users.id AND
-                      members.project_id = projects.id AND
-                      members.id = member_roles.member_id AND
-                      users.type = 'GroupNonMember'
-            )
+        WHERE id IN (
+            SELECT member_roles.role_id
+            FROM members, member_roles, projects, users
+            WHERE projects.identifier = ? AND
+                  members.user_id = users.id AND
+                  members.project_id = projects.id AND
+                  members.id = member_roles.member_id AND
+                  users.type = 'GroupNonMember'
+        )
         ;
-    ]], project, user))
+    ]], project))
 end
 
 -- Get the member permissions object for the given user on the given project.

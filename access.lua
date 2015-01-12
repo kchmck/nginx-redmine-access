@@ -228,18 +228,27 @@ function AccessHandler:user_perms(pname, username)
         return perms
     end
 
-    -- Otherwise, handle the non-member case.
-    local perms, err = self.rm:non_member_perms(pname, username)
+    -- Otherwise, try to get the project-specific permissions for non-members.
+    local perms, err = self.rm:non_member_perms(pname)
     if not perms then
         return nil, err
     end
 
-    -- Forbid if the member has no non-member permissions on the project.
-    if not perms:exists() then
+    if perms:exists() then
+        return perms
+    end
+
+    -- Finally, try to get the global permissions for non-members.
+    local global, err = self.rm:global_non_member_perms()
+    if not global then
+        return nil, err
+    end
+
+    if not global:exists() then
         return nil, "no permissions for user"
     end
 
-    return perms
+    return global
 end
 
 return {
