@@ -18,7 +18,7 @@ For example,
         local dbi = require("DBI")
         local access = require("access")
 
-        local db, err = dbi.Connect("DRIVER", "DATABASE", "USERNAME", 'PASSWORD")
+        local db, err = dbi.Connect("DRIVER", "DATABASE", "USERNAME", "PASSWORD")
         assert(db, err)
 
         handler = access.AccessHandler:new(db, "REALM")
