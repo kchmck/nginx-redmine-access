@@ -141,6 +141,11 @@ function AccessHandler:decide()
             return self:forbid(err)
         end
 
+        -- If there are no permissions for anon, let the user try to log in.
+        if not anon:exists() then
+            return self:authenticate()
+        end
+
         -- Since the method is read-only at this point, allow without
         -- authentication if the project is public and Anon has read access.
         if project.is_public and anon:read_access() then
@@ -204,10 +209,6 @@ function AccessHandler:anon_perms(pname)
     local global, err = self.rm:global_anon_perms()
     if not global then
         return nil, err
-    end
-
-    if not global:exists() then
-        return nil, "no permissions for anon"
     end
 
     return global
